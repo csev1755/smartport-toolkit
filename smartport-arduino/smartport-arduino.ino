@@ -234,207 +234,163 @@ ISR (SPI_STC_vect) {
   digitalWrite(slaveReadyPin, HIGH); // We are NOT ready for a new byte.
 
   rec_byte = SPDR;
-  //Serial.println(rec_data, HEX);
 
-  // NO SERIES
-  if (current_series == NO_SERIES) {
-    if (rec_byte == 0xC6) {
-      current_series = SYNC_SERIES;
-      series_count = 1;
-      send_byte = 0x81;
+  switch (current_series) {
 
-    } else if (rec_byte == 0xC3) {
-      current_series = EDIT_TPADS_SERIES;
-      series_count = 1;
-      send_byte = 0x80;
+    case NO_SERIES:
+      switch (rec_byte) {
+        case 0xC6:
+          current_series = SYNC_SERIES;
+          series_count = 1;
+          send_byte = 0x81;
+          break;
 
-    } else if (rec_byte == 0xC4) {
-      current_series = EDIT_SELECT_SERIES;
-      series_count = 1;
-      send_byte = 0x80;
+        case 0xC3:
+          current_series = EDIT_TPADS_SERIES;
+          series_count = 1;
+          send_byte = 0x80;
+          break;
 
-    } else {
-      current_series = NO_SERIES;
-      series_count = 0;
-      send_byte = 0x00;
-    }
+        case 0xC4:
+          current_series = EDIT_SELECT_SERIES;
+          series_count = 1;
+          send_byte = 0x80;
+          break;
 
-    // SYNC SERIES
-  } else if (current_series == SYNC_SERIES) {
-    if (series_count == 1) {
-      series_count = 2;
-      send_byte = enable_attrib_byte;
-    } else if (series_count == 2) {
-      current_series = NO_SERIES;
-      series_count = 0;
-      send_byte = send_no_sel_to;
-
-      TCNT1 = 0; // Reset timer.
-      digitalWrite(8, HIGH);
-      smart_port_status = true;
-    } else {
-      current_series = NO_SERIES;
-      series_count = 0;
-      send_byte = 0x00;
-    }
-
-    // EDIT TPADS SERIES
-  } else if (current_series == EDIT_TPADS_SERIES) {
-    if (series_count == 1) {
-      series_count = 2;
-      send_byte = (rec_byte & enabled_controllers) | sel_button; // Select Button
-
-    } else if (series_count == 2) {
-      series_count = 3;
-      send_byte = (rec_byte & enabled_controllers) | lt; // Left Trigger (Last Select)
-
-    } else if (series_count == 3) {
-      series_count = 4;
-      send_byte = (rec_byte & enabled_controllers) | share; // Sharing Mode (1 = Allow Sharing)
-
-    } else if (series_count == 4) {
-      series_count = 5;
-      send_byte = rec_byte; // RESERVED
-
-    } else if (series_count == 5) {
-      series_count = 6;
-      send_byte = (rec_byte & enabled_controllers) | is16SEL; // IS16SEL
-
-    } else if (series_count == 6) {
-      series_count = 7;
-      send_byte = (rec_byte & enabled_controllers) | up; // D Pad Up
-
-    } else if (series_count == 7) {
-      series_count = 8;
-      send_byte = (rec_byte & enabled_controllers) | down; // D Pad Down
-
-    } else if (series_count == 8) {
-      series_count = 9;
-      send_byte = (rec_byte & enabled_controllers) | right; // D Pad Right
-
-    } else if (series_count == 9) {
-      series_count = 10;
-      send_byte = (rec_byte & enabled_controllers) | left; // D Pad Left
-
-    } else if (series_count == 10) {
-      series_count = 11;
-      send_byte = (rec_byte & enabled_controllers) | a; // A
-
-    } else if (series_count == 11) {
-      series_count = 12;
-      send_byte = (rec_byte & enabled_controllers) | b; // B
-
-    } else if (series_count == 12) {
-      series_count = 13;
-      send_byte = (rec_byte & enabled_controllers) | x; // X
-
-    } else if (series_count == 13) {
-      series_count = 14;
-      send_byte = (rec_byte & enabled_controllers) | y; // Y
-
-    } else if (series_count == 14) {
-      series_count = 15;
-      send_byte = !enabled_controllers; // RESERVED (This Line Somehow Helps Physical Controllers)
-
-    } else if (series_count == 15) {
-      series_count = 16;
-      send_byte = !enabled_controllers; // RESERVED (This Line Somehow Helps Physical Controllers)
-
-    } else if (series_count == 16) {
-      series_count = 17;
-      send_byte = (rec_byte & enabled_controllers) | rt; // Right Trigger (Slow)
-
-    } else if (series_count == 17) {
-      series_count = 18;
-      send_byte = rec_byte; // Spare
-
-    } else if (series_count == 18) {
-      current_series = NO_SERIES;
-      series_count = 0;
-      send_byte = rec_byte | priority_byte; // Priority Byte
-      priority_byte = 0x00;
-
-    } else {
-      current_series = NO_SERIES;
-      series_count = 0;
-      send_byte = 0x00;
-    }
-
-    // EDIT SELECT SERIES
-  } else if (current_series == EDIT_SELECT_SERIES) {
-    if (series_count == 1) {
-      series_count = 2;
-      //spi_rec_select[0] = rec_byte;
-      if (p1_control) {
-        send_byte = p1_select;
-      } else {
-        send_byte = rec_byte;
+        default:
+          current_series = NO_SERIES;
+          series_count = 0;
+          send_byte = 0x00;
+          break;
       }
+      break;
 
-    } else if (series_count == 2) {
-      series_count = 3;
-      //spi_rec_select[1] = rec_byte;
-      if (p2_control) {
-        send_byte = p2_select;
-      } else {
-        send_byte = rec_byte;
+      
+    case SYNC_SERIES:
+      switch (series_count) {
+        case 1:
+          series_count = 2;
+          send_byte = enable_attrib_byte;
+          break;
+
+        case 2:
+          current_series = NO_SERIES;
+          series_count = 0;
+          send_byte = send_no_sel_to;
+
+          TCNT1 = 0; // Reset timer.
+          digitalWrite(8, HIGH);
+          smart_port_status = true;
+          break;
+
+        default:
+          current_series = NO_SERIES;
+          series_count = 0;
+          send_byte = 0x00;
+          break;
       }
+      break;
 
-    } else if (series_count == 3) {
-      series_count = 4;
-      //spi_rec_select[2] = rec_byte;
-      if (p3_control) {
-        send_byte = p3_select;
-      } else {
-        send_byte = rec_byte;
+
+    case EDIT_TPADS_SERIES:
+      switch (series_count) {
+
+        case 1:  series_count = 2;  send_byte = (rec_byte & enabled_controllers) | sel_button;     break;
+        case 2:  series_count = 3;  send_byte = (rec_byte & enabled_controllers) | lt;             break;
+        case 3:  series_count = 4;  send_byte = (rec_byte & enabled_controllers) | share;          break;
+        case 4:  series_count = 5;  send_byte = rec_byte;                                          break; // RESERVED
+        case 5:  series_count = 6;  send_byte = (rec_byte & enabled_controllers) | is16SEL;        break;
+        case 6:  series_count = 7;  send_byte = (rec_byte & enabled_controllers) | up;             break;
+        case 7:  series_count = 8;  send_byte = (rec_byte & enabled_controllers) | down;           break;
+        case 8:  series_count = 9;  send_byte = (rec_byte & enabled_controllers) | right;          break;
+        case 9:  series_count = 10; send_byte = (rec_byte & enabled_controllers) | left;           break;
+        case 10: series_count = 11; send_byte = (rec_byte & enabled_controllers) | a;              break;
+        case 11: series_count = 12; send_byte = (rec_byte & enabled_controllers) | b;              break;
+        case 12: series_count = 13; send_byte = (rec_byte & enabled_controllers) | x;              break;
+        case 13: series_count = 14; send_byte = (rec_byte & enabled_controllers) | y;              break; 
+        case 14: series_count = 15; send_byte = !enabled_controllers;                              break; // RESERVED (This Line Somehow Helps Physical Controllers)
+        case 15: series_count = 16; send_byte = !enabled_controllers;                              break; // RESERVED (This Line Somehow Helps Physical Controllers)
+        case 16: series_count = 17; send_byte = (rec_byte & enabled_controllers) | rt;             break;
+        case 17: series_count = 18; send_byte = rec_byte;                                          break; // SPARE
+
+        case 18:
+          current_series = NO_SERIES;
+          series_count = 0;
+          send_byte = rec_byte | priority_byte;
+          priority_byte = 0x00;
+          break;
+
+        default:
+          current_series = NO_SERIES;
+          series_count = 0;
+          send_byte = 0x00;
+          break;
       }
+      break;
 
-    } else if (series_count == 4) {
-      series_count = 5;
-      //spi_rec_select[3] = rec_byte;
-      if (p4_control) {
-        send_byte = p4_select;
-      } else {
-        send_byte = rec_byte;
+
+    case EDIT_SELECT_SERIES:
+      switch (series_count) {
+        case 1:
+          series_count = 2;
+          send_byte = p1_control ? p1_select : rec_byte;
+          break;
+
+        case 2:
+          series_count = 3;
+          send_byte = p2_control ? p2_select : rec_byte;
+          break;
+
+        case 3:
+          series_count = 4;
+          send_byte = p3_control ? p3_select : rec_byte;
+          break;
+
+        case 4:
+          series_count = 5;
+          send_byte = p4_control ? p4_select : rec_byte;
+          break;
+
+        case 5:
+          series_count = 6;
+          send_byte = v1_select;
+          break;
+
+        case 6:
+          series_count = 7;
+          send_byte = v2_select;
+          break;
+
+        case 7:
+          series_count = 8;
+          send_byte = v3_select;
+          break;
+
+        case 8:
+          series_count = 9;
+          send_byte = v4_select;
+          break;
+
+        case 9:
+          current_series = NO_SERIES;
+          series_count = 0;
+          send_byte = 0x00;
+          break;
+
+        default:
+          current_series = NO_SERIES;
+          series_count = 0;
+          send_byte = 0x00;
+          break;
       }
+      break;
 
-    } else if (series_count == 5) {
-      series_count = 6;
-      //spi_rec_select[4] = rec_byte;
-      send_byte = v1_select;
 
-    } else if (series_count == 6) {
-      series_count = 7;
-      //spi_rec_select[5] = rec_byte;
-      send_byte = v2_select;
-
-    } else if (series_count == 7) {
-      series_count = 8;
-      //spi_rec_select[6] = rec_byte;
-      send_byte = v3_select;
-
-    } else if (series_count == 8) {
-      series_count = 9;
-      //spi_rec_select[7] = rec_byte;
-      send_byte = v4_select;
-
-    } else if (series_count == 9) {
+    default:
       current_series = NO_SERIES;
       series_count = 0;
       send_byte = 0x00;
-      // Timer Value Received, Send Null
-
-    } else {
-      current_series = NO_SERIES;
-      series_count = 0;
-      send_byte = 0x00;
-    }
-
-    // CATCH ALL
-  } else {
-    current_series = NO_SERIES;
-    series_count = 0;
-    send_byte = 0x00;
+      break;
   }
 
   SPDR = send_byte;
@@ -448,7 +404,7 @@ ISR(TIMER1_OVF_vect) {
   series_count = 0;
   SPCR |= _BV(SPE);  // Enable SPI (Slave Mode)
   SPCR |= _BV(SPIE); // Enable SPI Interrupt
-  
+
   smart_port_status = false;
   digitalWrite(8, LOW);
 }
