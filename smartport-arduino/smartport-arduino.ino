@@ -19,53 +19,13 @@
 #define EDIT_TPADS_SERIES   2
 #define EDIT_SELECT_SERIES  3
 
-#define PHYSICAL_CONTROLLER_1  0
-#define PHYSICAL_CONTROLLER_2  1
-#define PHYSICAL_CONTROLLER_3  2
-#define PHYSICAL_CONTROLLER_4  3
-#define VIRTUAL_CONTROLLER_1   4
-#define VIRTUAL_CONTROLLER_2   5
-#define VIRTUAL_CONTROLLER_3   6
-#define VIRTUAL_CONTROLLER_4   7
-
-#define SELECT_KEY_1    0
-#define SELECT_KEY_2    1
-#define SELECT_KEY_3    2
-#define SELECT_KEY_4    3
-#define SELECT_KEY_5    4
-#define SELECT_KEY_6    5
-#define SELECT_KEY_7    6
-#define SELECT_KEY_8    7
-#define SELECT_KEY_9    8
-#define SELECT_KEY_10   9
-#define SELECT_KEY_11   10
-#define SELECT_KEY_12   11
-#define SELECT_KEY_13   12
-#define SELECT_KEY_14   13
-#define SELECT_KEY_15   14
-#define NO_SELECTION    15
-
-#define SELECT_BUTTON         0
-#define LEFT_TRIGGER          1
-#define SHARE_SWITCH          2
-#define IS16SEL_CONTROLLER    3
-#define DPAD_UP               4
-#define DPAD_DOWN             5
-#define DPAD_RIGHT            6
-#define DPAD_LEFT             7
-#define A_BUTTON              8
-#define B_BUTTON              9
-#define X_BUTTON              10
-#define Y_BUTTON              11
-#define RIGHT_TRIGGER         12
-
 //---------------------------------------------------------------------------------------------
 // THIS SECTION IS FOR SMART PORT VARIABLES - USE CAUTION WHEN MAKING CHANGES
 //---------------------------------------------------------------------------------------------
 
 bool smart_port_status = false;
 
-int current_series = 0;  // 0 = Not In Series, 1 = Sync, 2 = Edit T-Pads, 3 = Edit Select
+int current_series = 0;
 int series_count = 0;
 
 byte rec_byte = 0;
@@ -75,17 +35,17 @@ int p1_control, p2_control, p3_control, p4_control;
 int enabled_controllers;
 
 int* control_map[] = {
-  &p1_control,   // PHYSICAL_CONTROLLER_1
-  &p2_control,   // PHYSICAL_CONTROLLER_2
-  &p3_control,   // PHYSICAL_CONTROLLER_3
-  &p4_control    // PHYSICAL_CONTROLLER_4
+  &p1_control,
+  &p2_control,
+  &p3_control,
+  &p4_control
 };
 
 uint8_t controller_masks[] = {
-  0b00000001,    // PHYSICAL_CONTROLLER_1
-  0b00000010,    // PHYSICAL_CONTROLLER_2
-  0b00000100,    // PHYSICAL_CONTROLLER_3
-  0b00001000     // PHYSICAL_CONTROLLER_4
+  0b00000001,
+  0b00000010,
+  0b00000100,
+  0b00001000
 };
 
 int p1_select, p2_select, p3_select, p4_select;
@@ -102,19 +62,19 @@ int a, b, x, y, rt;
 int priority_byte;
 
 int* button_map[] = {
-  &sel_button,   // SELECT_BUTTON
-  &lt,            // LEFT_TRIGGER
-  &share,        // SHARE_SWITCH
-  &is16SEL,      // IS16SEL_CONTROLLER
-  &up,           // DPAD_UP
-  &down,         // DPAD_DOWN
-  &right,        // DPAD_RIGHT
-  &left,         // DPAD_LEFT
-  &a,            // A_BUTTON
-  &b,            // B_BUTTON
-  &x,            // X_BUTTON
-  &y,            // Y_BUTTON
-  &rt            // RIGHT_TRIGGER
+  &sel_button,
+  &lt,
+  &share,
+  &is16SEL,
+  &up,
+  &down,
+  &right,
+  &left,
+  &a,
+  &b,
+  &x,
+  &y,
+  &rt
 };
 
 //---------------------------------------------------------------------------------------------
