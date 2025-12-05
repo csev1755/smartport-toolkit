@@ -25,16 +25,16 @@
 
 bool smart_port_status = false;
 
-int current_series = 0;
-int series_count = 0;
+uint8_t current_series = 0;
+uint8_t series_count = 0;
 
 byte rec_byte = 0;
 byte send_byte = 0;
 
-int p1_control, p2_control, p3_control, p4_control;
-int enabled_controllers;
+uint8_t p1_control, p2_control, p3_control, p4_control;
+uint8_t enabled_controllers;
 
-int* control_map[] = {
+uint8_t* control_map[] = {
   &p1_control,
   &p2_control,
   &p3_control,
@@ -48,20 +48,20 @@ uint8_t controller_masks[] = {
   0b00001000
 };
 
-int p1_select, p2_select, p3_select, p4_select;
-int v1_select, v2_select, v3_select, v4_select;
+uint8_t p1_select, p2_select, p3_select, p4_select;
+uint8_t v1_select, v2_select, v3_select, v4_select;
 
-int* controller_map[] = {
+uint8_t* controller_map[] = {
   &p1_select, &p2_select, &p3_select, &p4_select,
   &v1_select, &v2_select, &v3_select, &v4_select
 };
 
-int sel_button, lt, share, is16SEL;
-int up, down, right, left;
-int a, b, x, y, rt;
-int priority_byte;
+uint8_t sel_button, lt, share, is16SEL;
+uint8_t up, down, right, left;
+uint8_t a, b, x, y, rt;
+uint8_t priority_byte;
 
-int* button_map[] = {
+uint8_t* button_map[] = {
   &sel_button,
   &lt,
   &share,
@@ -81,41 +81,41 @@ int* button_map[] = {
 // THIS SECTION IS FOR SMART PORT USER CALLABLE FUNCTIONS - USE CAUTION WHEN MAKING CHANGES
 //---------------------------------------------------------------------------------------------
 
-void edit_select(int controller, int selection) {
+void edit_select(uint8_t controller, uint8_t selection) {
   if (controller >= 0 && controller < 8) {
     *controller_map[controller] = selection;
   }
 }
 
-void press_button(int controller, int button) {
+void press_button(uint8_t controller, uint8_t button) {
   if (button >= 0 && button < (sizeof(button_map) / sizeof(button_map[0]))) {
     *button_map[button] |= (1 << controller);
     priority_byte |= (1 << controller);
   }
 }
 
-void release_button(int controller, int button) {
+void release_button(uint8_t controller, uint8_t button) {
   if (button >= 0 && button < (sizeof(button_map) / sizeof(button_map[0]))) {
     *button_map[button] &= ~(1 << controller);
     priority_byte |= (1 << controller);
   }
 }
 
-void enable_physical_controller(int controller) {
+void enable_physical_controller(uint8_t controller) {
   if (controller >= 0 && controller < 4) {
     *control_map[controller] = 1;
     enabled_controllers &= ~controller_masks[controller];
   }
 }
 
-void disable_physical_controller(int controller) {
+void disable_physical_controller(uint8_t controller) {
   if (controller >= 0 && controller < 4) {
     *control_map[controller] = 0;
     enabled_controllers |= controller_masks[controller];
   }
 }
 
-void begin_smart_port(int slave_ready_pin) {
+void begin_smart_port(uint8_t slave_ready_pin) {
   pinMode(MISO, OUTPUT);
   pinMode(MOSI, INPUT);
   pinMode(SCK, INPUT);
@@ -151,26 +151,26 @@ void receive_command(String cmd) {
   cmd.trim();  // Remove whitespace/newlines
 
   if (cmd.startsWith("PRESS,")) {
-    int controller = cmd.substring(6, cmd.indexOf(',', 6)).toInt();
-    int button = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
+    uint8_t controller = cmd.substring(6, cmd.indexOf(',', 6)).toInt();
+    uint8_t button = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
     press_button(controller, button);
 
   } else if (cmd.startsWith("RELEASE,")) {
-    int controller = cmd.substring(8, cmd.indexOf(',', 8)).toInt();
-    int button = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
+    uint8_t controller = cmd.substring(8, cmd.indexOf(',', 8)).toInt();
+    uint8_t button = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
     release_button(controller, button);
 
   } else if (cmd.startsWith("EDIT,")) {
-    int controller = cmd.substring(5, cmd.indexOf(',', 5)).toInt();
-    int selection = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
+    uint8_t controller = cmd.substring(5, cmd.indexOf(',', 5)).toInt();
+    uint8_t selection = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
     edit_select(controller, selection);
 
   } else if (cmd.startsWith("ENABLE,")) {
-    int controller = cmd.substring(7).toInt();
+    uint8_t controller = cmd.substring(7).toInt();
     enable_physical_controller(controller);
 
   } else if (cmd.startsWith("DISABLE,")) {
-    int controller = cmd.substring(8).toInt();
+    uint8_t controller = cmd.substring(8).toInt();
     disable_physical_controller(controller);
 
   } else {
