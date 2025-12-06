@@ -101,50 +101,13 @@
       <option value="3">PHYSICAL_CONTROLLER_4</option>
     </select>
   </label>
-
   <button onclick="toggleController('enable')">Enable</button>
   <button onclick="toggleController('disable')">Disable</button>
 </div>
 
-<script>
-async function sendCommand(action) {
-    const controller = document.getElementById('controller').value;
-    const button = document.getElementById('button').value;
-
-    const response = await fetch(`/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ controller: parseInt(controller), button: parseInt(button) })
-    });
-}
-
-async function editSelection() {
-    const controller = document.getElementById('edit-controller').value;
-    const selection = document.getElementById('selection').value;
-
-    const response = await fetch('/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ controller: parseInt(controller), selection: parseInt(selection) })
-    });
-}
-
-async function toggleController(action) {
-    const controller = document.getElementById('enable-controller').value;
-
-    const response = await fetch(`/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ controller: parseInt(controller) })
-    });
-}
-
-async function resetPort() {
-    const response = await fetch(`/reset`, {
-        method: 'POST',
-    });
-}
-
-</script>
+<h1>Gamepad Input</h1>
+<pre id="output"></pre>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+<script src="/control.js"></script>
 </body>
 </html>
