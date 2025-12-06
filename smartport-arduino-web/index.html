@@ -11,6 +11,9 @@
 </head>
 <body>
 <h1>Smart Port Controller</h1>
+<div>
+  <button onclick="resetPort()">Reset</button>
+</div>
 
 <h2>Press / Release Buttons</h2>
 <div>
@@ -135,6 +138,13 @@ async function toggleController(action) {
         body: JSON.stringify({ controller: parseInt(controller) })
     });
 }
+
+async function resetPort() {
+    const response = await fetch(`/reset`, {
+        method: 'POST',
+    });
+}
+
 </script>
 </body>
 </html>

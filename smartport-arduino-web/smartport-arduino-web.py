@@ -9,7 +9,8 @@ rok_action = {
   "release": 1,
   "edit": 2,
   "enable": 3,
-  "disable": 4
+  "disable": 4,
+  "reset": 5
 }
 
 @app.route('/')
@@ -50,6 +51,11 @@ def enable():
 def disable():
     controller = request.json['controller']
     arduino.write(bytes([rok_action["disable"], controller, 0]))
+    return "OK"
+
+@app.route('/reset', methods=['POST'])
+def reset():
+    arduino.write(bytes([rok_action["reset"], 0, 0]))
     return "OK"
 
 if __name__ == '__main__':

@@ -52,6 +52,7 @@
 #define CMD_EDIT    2
 #define CMD_ENABLE  3
 #define CMD_DISABLE 4
+#define CMD_RESET   5
 
 //---------------------------------------------------------------------------------------------
 // THIS SECTION IS FOR SMART PORT VARIABLES - USE CAUTION WHEN MAKING CHANGES
@@ -165,6 +166,10 @@ void receive_command(uint8_t *cmd, size_t len) {
       *control_map[controller] = 0;
       enabled_controllers |= controller_masks[controller];
       break;
+    
+    case CMD_RESET:
+      reset_smartport();
+      break;
   }
 }
 
@@ -174,6 +179,16 @@ void loop() {
     Serial.readBytes(cmd, 3);
     receive_command(cmd, 3);
   }
+}
+
+void reset_smartport() {
+  SPDR = 0x00;
+  current_series = 0;
+  series_count = 0;
+  SPCR = 0;
+  SPCR |= _BV(SPE);  // Enable SPI (Slave Mode)
+  SPCR |= _BV(SPIE); // Enable SPI Interrupt
+  digitalWrite(SLAVE_READY_PIN, LOW);
 }
 
 //---------------------------------------------------------------------------------------------
@@ -345,11 +360,5 @@ ISR (SPI_STC_vect) {
 }
 
 ISR(TIMER1_OVF_vect) {
-  SPCR = 0;
-  current_series = 0;
-  series_count = 0;
-  SPCR |= _BV(SPE);  // Enable SPI (Slave Mode)
-  SPCR |= _BV(SPIE); // Enable SPI Interrupt
-
-  digitalWrite(SLAVE_READY_PIN, LOW);
+  reset_smartport();
 }
