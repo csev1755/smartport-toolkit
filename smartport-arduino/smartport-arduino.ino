@@ -103,55 +103,58 @@ void setup() {
   Serial.begin(115200); 
 }
 
-void receive_command(String cmd) {
-  cmd.trim();
+void receive_command(uint8_t *cmd, size_t len) {
+  if (len < 3) return;
 
-  if (cmd.startsWith("PRESS,")) {
-    uint8_t controller = cmd.substring(6, cmd.indexOf(',', 6)).toInt();
-    uint8_t button = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
-    if (button >= 0 && button < (sizeof(button_map) / sizeof(button_map[0]))) {
-      *button_map[button] |= (1 << controller);
-      priority_byte |= (1 << controller);
-    }
+  uint8_t command    = cmd[0];
+  uint8_t controller = cmd[1];
+  uint8_t value      = cmd[2];
 
-  } else if (cmd.startsWith("RELEASE,")) {
-    uint8_t controller = cmd.substring(8, cmd.indexOf(',', 8)).toInt();
-    uint8_t button = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
-    if (button >= 0 && button < (sizeof(button_map) / sizeof(button_map[0]))) {
-      *button_map[button] &= ~(1 << controller);
-      priority_byte |= (1 << controller);
-    }
+  switch (command) {
+    case 0: // PRESS
+      if (value < (sizeof(button_map) / sizeof(button_map[0]))) {
+        *button_map[value] |= (1 << controller);
+        priority_byte |= (1 << controller);
+      }
+      break;
 
-  } else if (cmd.startsWith("EDIT,")) {
-    uint8_t controller = cmd.substring(5, cmd.indexOf(',', 5)).toInt();
-    uint8_t selection = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
-    if (controller >= 0 && controller < 8) {
-      *controller_map[controller] = selection;
-    }
+    case 1: // RELEASE
+      if (value < (sizeof(button_map) / sizeof(button_map[0]))) {
+        *button_map[value] &= ~(1 << controller);
+        priority_byte |= (1 << controller);
+      }
+      break;
 
-  } else if (cmd.startsWith("ENABLE,")) {
-    uint8_t controller = cmd.substring(7).toInt();
-    if (controller >= 0 && controller < 4) {
-      *control_map[controller] = 1;
-      enabled_controllers &= ~controller_masks[controller];
-    }
+    case 2: // EDIT
+      if (controller < 8) {
+        *controller_map[controller] = value;
+      }
+      break;
 
-  } else if (cmd.startsWith("DISABLE,")) {
-    uint8_t controller = cmd.substring(8).toInt();
-    if (controller >= 0 && controller < 4) {
-      *control_map[controller] = 0;
-      enabled_controllers |= controller_masks[controller];
-    }
+    case 3: // ENABLE
+      if (controller < 4) {
+        *control_map[controller] = 1;
+        enabled_controllers &= ~controller_masks[controller];
+      }
+      break;
 
-  } else {
-    true;
+    case 4: // DISABLE
+      if (controller < 4) {
+        *control_map[controller] = 0;
+        enabled_controllers |= controller_masks[controller];
+      }
+      break;
+
+    default:
+      break;
   }
 }
 
 void loop() {
-  if (Serial.available()) {
-    String cmd = Serial.readStringUntil('\n');
-    receive_command(cmd);
+  if (Serial.available() >= 3) {
+    uint8_t cmd[3];
+    Serial.readBytes(cmd, 3);
+    receive_command(cmd, 3);
   }
 }
 

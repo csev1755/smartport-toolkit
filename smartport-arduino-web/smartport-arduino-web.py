@@ -1,12 +1,16 @@
 import argparse
 import serial
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, jsonify
 
 app = Flask(__name__)
 
-def send_command(cmd):
-    arduino.write(f"{cmd}\n".encode())
-    return arduino.readline().decode().strip()
+rok_action = {
+  "press": 0,
+  "release": 1,
+  "edit": 2,
+  "enable": 3,
+  "disable": 4
+}
 
 @app.route('/')
 def index():
@@ -17,31 +21,36 @@ def press():
     data = request.json
     controller = data['controller']
     button = data['button']
-    return send_command(f"PRESS,{controller},{button}")
+    arduino.write(bytes([rok_action["press"], controller, button]))
+    return "OK"
 
 @app.route('/release', methods=['POST'])
 def release():
     data = request.json
     controller = data['controller']
     button = data['button']
-    return send_command(f"RELEASE,{controller},{button}")
+    arduino.write(bytes([rok_action["release"], controller, button]))
+    return "OK"
 
 @app.route('/edit', methods=['POST'])
 def edit():
     data = request.json
     controller = data['controller']
     selection = data['selection']
-    return send_command(f"EDIT,{controller},{selection}")
+    arduino.write(bytes([rok_action["edit"], controller, selection]))
+    return "OK"
 
 @app.route('/enable', methods=['POST'])
 def enable():
     controller = request.json['controller']
-    return send_command(f"ENABLE,{controller}")
+    arduino.write(bytes([rok_action["enable"], controller, 0]))
+    return "OK"
 
 @app.route('/disable', methods=['POST'])
 def disable():
     controller = request.json['controller']
-    return send_command(f"DISABLE,{controller}")
+    arduino.write(bytes([rok_action["disable"], controller, 0]))
+    return "OK"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Starts the Arduino SmartPort web controller')
