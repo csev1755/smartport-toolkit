@@ -1,8 +1,8 @@
+import argparse
 import serial
 from flask import Flask, request, send_file
 
 app = Flask(__name__)
-arduino = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
 
 def send_command(cmd):
     arduino.write(f"{cmd}\n".encode())
@@ -44,4 +44,11 @@ def disable():
     return send_command(f"DISABLE,{controller}")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    parser = argparse.ArgumentParser(description='Starts the Arduino SmartPort web controller')
+    parser.add_argument('serial_device', help='The serial device name of your Arduino')
+    parser.add_argument('-i', '--ip', help='What IP the server will listen on', default='0.0.0.0')
+    parser.add_argument('-p', '--port', help='What port the server will listen on', default='5000')
+    args = parser.parse_args()
+    
+    arduino = serial.Serial(args.serial_device, 115200, timeout=1)
+    app.run(host=args.ip, port=args.port)
