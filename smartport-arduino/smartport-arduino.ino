@@ -78,50 +78,14 @@ uint8_t* button_map[] = {
 };
 
 //---------------------------------------------------------------------------------------------
-// THIS SECTION IS FOR SMART PORT USER CALLABLE FUNCTIONS - USE CAUTION WHEN MAKING CHANGES
+// RECEIVE COMMANDS VIA SERIAL
 //---------------------------------------------------------------------------------------------
 
-void edit_select(uint8_t controller, uint8_t selection) {
-  if (controller >= 0 && controller < 8) {
-    *controller_map[controller] = selection;
-  }
-}
-
-void press_button(uint8_t controller, uint8_t button) {
-  if (button >= 0 && button < (sizeof(button_map) / sizeof(button_map[0]))) {
-    *button_map[button] |= (1 << controller);
-    priority_byte |= (1 << controller);
-  }
-}
-
-void release_button(uint8_t controller, uint8_t button) {
-  if (button >= 0 && button < (sizeof(button_map) / sizeof(button_map[0]))) {
-    *button_map[button] &= ~(1 << controller);
-    priority_byte |= (1 << controller);
-  }
-}
-
-void enable_physical_controller(uint8_t controller) {
-  if (controller >= 0 && controller < 4) {
-    *control_map[controller] = 1;
-    enabled_controllers &= ~controller_masks[controller];
-  }
-}
-
-void disable_physical_controller(uint8_t controller) {
-  if (controller >= 0 && controller < 4) {
-    *control_map[controller] = 0;
-    enabled_controllers |= controller_masks[controller];
-  }
-}
-
-void begin_smart_port(uint8_t slave_ready_pin) {
+void setup() {
   pinMode(MISO, OUTPUT);
   pinMode(MOSI, INPUT);
   pinMode(SCK, INPUT);
-  pinMode(slave_ready_pin, OUTPUT);
-
-  pinMode(2, OUTPUT);
+  pinMode(slaveReadyPin, OUTPUT);
 
   SPCR |= _BV(SPE);  // Enable SPI (Slave Mode)
   SPCR |= _BV(SPIE); // Enable SPI Interrupt
@@ -134,44 +98,50 @@ void begin_smart_port(uint8_t slave_ready_pin) {
   TCCR1B |= (1 << CS10);    // 64 prescaler 
   TCCR1B |= (1 << CS11);    // 64 prescaler 
   TIMSK1 |= (1 << TOIE1);   // enable timer overflow interrupt
-  
+
   digitalWrite(slaveReadyPin, HIGH); // Ready for the first byte.
-}
-
-//---------------------------------------------------------------------------------------------
-// RECEIVE COMMANDS VIA SERIAL
-//---------------------------------------------------------------------------------------------
-
-void setup() {
   Serial.begin(115200); 
-  begin_smart_port(slaveReadyPin);
 }
 
 void receive_command(String cmd) {
-  cmd.trim();  // Remove whitespace/newlines
+  cmd.trim();
 
   if (cmd.startsWith("PRESS,")) {
     uint8_t controller = cmd.substring(6, cmd.indexOf(',', 6)).toInt();
     uint8_t button = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
-    press_button(controller, button);
+    if (button >= 0 && button < (sizeof(button_map) / sizeof(button_map[0]))) {
+      *button_map[button] |= (1 << controller);
+      priority_byte |= (1 << controller);
+    }
 
   } else if (cmd.startsWith("RELEASE,")) {
     uint8_t controller = cmd.substring(8, cmd.indexOf(',', 8)).toInt();
     uint8_t button = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
-    release_button(controller, button);
+    if (button >= 0 && button < (sizeof(button_map) / sizeof(button_map[0]))) {
+      *button_map[button] &= ~(1 << controller);
+      priority_byte |= (1 << controller);
+    }
 
   } else if (cmd.startsWith("EDIT,")) {
     uint8_t controller = cmd.substring(5, cmd.indexOf(',', 5)).toInt();
     uint8_t selection = cmd.substring(cmd.lastIndexOf(',') + 1).toInt();
-    edit_select(controller, selection);
+    if (controller >= 0 && controller < 8) {
+      *controller_map[controller] = selection;
+    }
 
   } else if (cmd.startsWith("ENABLE,")) {
     uint8_t controller = cmd.substring(7).toInt();
-    enable_physical_controller(controller);
+    if (controller >= 0 && controller < 4) {
+      *control_map[controller] = 1;
+      enabled_controllers &= ~controller_masks[controller];
+    }
 
   } else if (cmd.startsWith("DISABLE,")) {
     uint8_t controller = cmd.substring(8).toInt();
-    disable_physical_controller(controller);
+    if (controller >= 0 && controller < 4) {
+      *control_map[controller] = 0;
+      enabled_controllers |= controller_masks[controller];
+    }
 
   } else {
     true;
