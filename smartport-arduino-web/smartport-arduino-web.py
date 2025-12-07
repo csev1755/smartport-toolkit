@@ -6,6 +6,13 @@ from flask_socketio import SocketIO
 app = Flask(__name__, static_folder='static')
 socketio = SocketIO(app)
 
+class CommandDeck:
+    def __init__(self, serial_device):
+        self.smartport = serial.Serial(serial_device, 115200, timeout=1)
+
+    def send_command(self, action, controller, value):
+        self.smartport.write(bytes([action, controller, value]))
+
 testing_controller = 4 # VIRTUAL_CONTROLLER_1
 
 rok_action = {
@@ -30,7 +37,7 @@ def handle_gamepad(data):
     if button_index in button_map:
         btn = button_map[button_index]
         action = "press" if pressed else "release"
-        arduino.write(bytes([rok_action[action], testing_controller, btn['rok_cmd']]))
+        command_deck.send_command(rok_action[action], testing_controller, btn['rok_cmd'])
 
 @app.route('/')
 def index():
@@ -43,49 +50,44 @@ def script():
 @app.route('/press', methods=['POST'])
 def press():
     data = request.json
-    controller = data['controller']
-    button = data['button']
-    arduino.write(bytes([rok_action["press"], controller, button]))
+    command_deck.send_command(rok_action["press"], data['controller'], data['button'])
     return "OK"
 
 @app.route('/release', methods=['POST'])
 def release():
     data = request.json
-    controller = data['controller']
-    button = data['button']
-    arduino.write(bytes([rok_action["release"], controller, button]))
+    command_deck.send_command(rok_action["release"], data['controller'], data['button'])
     return "OK"
 
 @app.route('/edit', methods=['POST'])
 def edit():
     data = request.json
-    controller = data['controller']
-    selection = data['selection']
-    arduino.write(bytes([rok_action["edit"], controller, selection]))
+    command_deck.send_command(rok_action["edit"], data['controller'], data['selection'])
     return "OK"
 
 @app.route('/enable', methods=['POST'])
 def enable():
-    controller = request.json['controller']
-    arduino.write(bytes([rok_action["enable"], controller, 0]))
+    command_deck.send_command(rok_action["enable"], request.json['controller'], 0)
     return "OK"
 
 @app.route('/disable', methods=['POST'])
 def disable():
-    controller = request.json['controller']
-    arduino.write(bytes([rok_action["disable"], controller, 0]))
+    command_deck.send_command(rok_action["disable"], request.json['controller'], 0)
     return "OK"
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    arduino.write(bytes([rok_action["reset"], 0, 0]))
+    command_deck.send_command(rok_action["reset"], 0, 0)
     return "OK"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Starts the Arduino SmartPort web controller')
+    
     parser.add_argument('serial_device', help='The serial device name of your Arduino')
     parser.add_argument('-i', '--ip', help='What IP the server will listen on', default='0.0.0.0')
     parser.add_argument('-p', '--port', help='What port the server will listen on', default='5000')
+    
     args = parser.parse_args()
-    arduino = serial.Serial(args.serial_device, 115200, timeout=1)
+    
+    command_deck = CommandDeck(serial_device=args.serial_device)
     socketio.run(app)
