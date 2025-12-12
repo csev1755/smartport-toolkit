@@ -2,6 +2,7 @@ import argparse
 import serial
 import signal
 import sys
+from enum import Enum
 from flask import Flask, request, send_from_directory
 from flask_socketio import SocketIO
 from upnp import UPnPPortMapper
@@ -14,46 +15,70 @@ class Controller:
         self.index = index
         self.selection = selection
         self.button_map = {
-            0: {'name': 'a', 'rok_cmd': 8},
-            1: {'name': 'b', 'rok_cmd': 9}
+            0:  self.Command.A,
+            1:  self.Command.B,
+            3:  self.Command.X,
+            2:  self.Command.Y,
+            4:  self.Command.LEFT_TRIGGER,
+            5:  self.Command.RIGHT_TRIGGER,
+            12: self.Command.DPAD_UP,
+            13: self.Command.DPAD_DOWN,
+            14: self.Command.DPAD_LEFT,
+            15: self.Command.DPAD_RIGHT
         }
-        command_deck.send_command("edit", self.index, self.selection)
+        command_deck.send_command(
+            command_deck.Command.EDIT,
+            self.index,
+            self.selection
+            )
 
-    def input(self, input):
-        button_index = input['button']
-        pressed = input['pressed']
-        if button_index in self.button_map:
-            btn = self.button_map[button_index]
-            action = "press" if pressed else "release"
-            command_deck.send_command(action, self.index, btn['rok_cmd'])
+    class Command(Enum):
+        SELECT = 0
+        LEFT_TRIGGER = 1
+        SHARE_SWITCH = 2
+        IS_16_SEL = 3
+        DPAD_UP = 4
+        DPAD_DOWN = 5
+        DPAD_RIGHT = 6
+        DPAD_LEFT = 7
+        A = 8
+        B = 9
+        X = 10
+        Y = 11
+        RIGHT_TRIGGER = 12
+
+    def send_input(self, input):
+        if input['button'] in self.button_map:
+            command = CommandDeck.Command.PRESS if input['pressed'] else CommandDeck.Command.RELEASE
+            button = self.button_map[input['button']]
+            command_deck.send_command(command, self.index, button.value)
 
 class CommandDeck:
     def __init__(self, serial_device=None):
         self.smartport = None
-        self.rok_action = {
-            "press": 0,
-            "release": 1,
-            "edit": 2,
-            "enable": 3,
-            "disable": 4,
-            "reset": 5
-        }
-
         if serial_device is not None:
             self.smartport = serial.Serial(serial_device, 115200, timeout=1)
             print(f"Connected to SmartPort device at {serial_device}")
         else:
             print("No SmartPort device specified, will only print commands for debugging")
+    
+    class Command(Enum):
+        PRESS = 0
+        RELEASE = 1
+        EDIT = 2
+        ENABLE = 3
+        DISABLE = 4
+        RESET = 5
 
-    def send_command(self, action, controller, value=0):
+    def send_command(self, command: Command, controller, value):
         if self.smartport is not None:
-            self.smartport.write(bytes([self.rok_action[action], controller, value]))
+            self.smartport.write(bytes([command.value, controller, value]))
         else:
-            print(f"DEBUG - Action: {self.rok_action[action]} Controller: {controller} Value: {value}")
+            print(f"DEBUG - Action: {command.value} Controller: {controller} Value: {value}")
 
 @socketio.on('gamepad')
 def handle_gamepad(data):
-    controller.input(data)
+    controller.send_input(data)
 
 @app.route('/')
 def index():
@@ -66,34 +91,34 @@ def script():
 @app.route('/press', methods=['POST'])
 def press():
     data = request.json
-    command_deck.send_command("press", data['controller'], data['button'])
+    command_deck.send_command(command_deck.Command.PRESS, data['controller'], data['button'])
     return "OK"
 
 @app.route('/release', methods=['POST'])
 def release():
     data = request.json
-    command_deck.send_command("release", data['controller'], data['button'])
+    command_deck.send_command(command_deck.Command.RELEASE, data['controller'], data['button'])
     return "OK"
 
 @app.route('/edit', methods=['POST'])
 def edit():
     data = request.json
-    command_deck.send_command("edit", data['controller'], data['selection'])
+    command_deck.send_command(command_deck.Command.EDIT, data['controller'], data['selection'])
     return "OK"
 
 @app.route('/enable', methods=['POST'])
 def enable():
-    command_deck.send_command("enable", request.json['controller'], 0)
+    command_deck.send_command(command_deck.Command.ENABLE, request.json['controller'])
     return "OK"
 
 @app.route('/disable', methods=['POST'])
 def disable():
-    command_deck.send_command("disable", request.json['controller'], 0)
+    command_deck.send_command(command_deck.Command.DISABLE, request.json['controller'])
     return "OK"
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    command_deck.send_command("reset", 0, 0)
+    command_deck.send_command(command_deck.Command.RESET)
     return "OK"
 
 def handle_exit(signal, frame):
