@@ -1,16 +1,13 @@
-# smartport-tools
-## [smartport-arduino](/smartport-arduino)
-An Arduino sketch that listens to commands from its USB serial interface to perform commands via the SmartPort protocol
+# rokenbok-webserver
+A modular Python Flask application to control Rokenbok over the internet
+## web.py
+A Flask webserver that handles requests to interact with Rokenbok
 
-## [smartport-arduino-web](/smartport-arduino-web)
-A Python Flask application that hosts a web server to interact with the SmartPort via `smartport-arduino`
-# Other projects
+## rokenbok_control.py
+A module called by the Flask webserver that defines Command Deck functions and logic
 
-## https://github.com/stepstools/Rokenbok-Smart-Port-WiFi
-Custom ESP32 controller with web interface
+## rokenbok_device.py
+A module called by the `rokenbok_control` module to control a Rokenbok device like a SmartPort adapter
 
-## https://github.com/jordan-woyak/rokenbok-smart-port
-Arduino controller
-
-## https://github.com/rgill02/rokenbok
-Arduino controller with Python client, server, and hub
+## upnp.py
+A module that can be used by the webserver to open its port on a router via UPnP
