@@ -6,6 +6,7 @@ class CommandDeck:
 
     Attributes:
         device: A device used to control Rokenbok
+        controllers: A dictionary of controller instances keyed by index
     """
     
     def __init__(self, **kwargs):
@@ -21,12 +22,27 @@ class CommandDeck:
             or if it is in debugging mode without a device.
         """
         self.device = None
+        self.controllers = {}
         
         if "smartport-arduino" in kwargs:
             self.device = SmartPortArduino(kwargs['smartport-arduino'])
             print(f"Connected to SmartPort Arduino device at {kwargs['smartport-arduino']}")
         else:
             print("Invalid device or no device specified, will only print commands for debugging")
+    
+    def get_controller(self, index: Rokenbok.ControllerIdentifier, vehicle: Rokenbok.VehicleKey=None):
+        """Gets or creates a controller instance.
+
+        Args:
+            index (ControllerIdentifier): The controller identifier
+            vehicle (VehicleKey, optional): Initial vehicle selection
+
+        Returns:
+            Controller: The controller instance
+        """
+        if index not in self.controllers:
+            self.controllers[index] = self.Controller(self, index, vehicle)
+        return self.controllers[index]
     
     class Controller:
         """Represents a controller connected to the Command Deck.

@@ -20,31 +20,31 @@ def script():
 
 @app.route('/press', methods=['POST'])
 def press():
-    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
+    controller = command_deck.get_controller(Rokenbok.ControllerIdentifier(request.json['controller']))
     controller.press(Rokenbok.ControllerCommand(request.json['value']))
     return "OK"
 
 @app.route('/release', methods=['POST'])
 def release():
-    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
+    controller = command_deck.get_controller(Rokenbok.ControllerIdentifier(request.json['controller']))
     controller.release(Rokenbok.ControllerCommand(request.json['value']))
     return "OK"
 
 @app.route('/edit', methods=['POST'])
 def edit():
-    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
+    controller = command_deck.get_controller(Rokenbok.ControllerIdentifier(request.json['controller']))
     controller.select(Rokenbok.VehicleKey(request.json['value']))
     return "OK"
 
 @app.route('/enable', methods=['POST'])
 def enable():
-    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
+    controller = command_deck.get_controller(Rokenbok.ControllerIdentifier(request.json['controller']))
     controller.enable()
     return "OK"
 
 @app.route('/disable', methods=['POST'])
 def disable():
-    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
+    controller = command_deck.get_controller(Rokenbok.ControllerIdentifier(request.json['controller']))
     controller.disable()
     return "OK"
 
@@ -55,7 +55,7 @@ def reset():
 
 @socketio.on('gamepad')
 def handle_gamepad(data):
-    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(data['controller']))
+    controller = command_deck.get_controller(Rokenbok.ControllerIdentifier(data['controller']))
     controller.send_input(data)
 
 def handle_exit(signal, frame):
