@@ -1,4 +1,7 @@
-# SmartPort pinout
+# smartport-arduino
+An Arduino sketch that listens to commands from its USB serial interface to perform commands via the SmartPort protocol
+
+## SmartPort pinout
 
 ![SmartPort diagram](./mini-din-6.jpg)
 
@@ -11,13 +14,13 @@
 | 5 | Slave Ready | 8 |
 | 6 | Ground | GND |
 
-# Other projects
+## Other projects
 
-## https://github.com/stepstools/Rokenbok-Smart-Port-WiFi
+### https://github.com/stepstools/Rokenbok-Smart-Port-WiFi
 Custom ESP32 controller with web interface
 
-## https://github.com/jordan-woyak/rokenbok-smart-port
+### https://github.com/jordan-woyak/rokenbok-smart-port
 Arduino controller
 
-## https://github.com/rgill02/rokenbok
+### https://github.com/rgill02/rokenbok
 Arduino controller with Python client, server, and hub
