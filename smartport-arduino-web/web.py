@@ -3,8 +3,9 @@ import signal
 import sys
 from flask import Flask, request, send_from_directory
 from flask_socketio import SocketIO
+from rokenbok_control import CommandDeck
+from rokenbok_device import Commands as Rokenbok
 from upnp import UPnPPortMapper
-from smartport_arduino import CommandDeck
 
 app = Flask(__name__, static_folder='static')
 socketio = SocketIO(app)
@@ -19,42 +20,42 @@ def script():
 
 @app.route('/press', methods=['POST'])
 def press():
-    controller = command_deck.Controller(command_deck, request.json['controller'])
-    controller.release(request.json['value'])
+    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
+    controller.press(Rokenbok.ControllerCommand(request.json['value']))
     return "OK"
 
 @app.route('/release', methods=['POST'])
 def release():
-    controller = command_deck.Controller(command_deck, request.json['controller'])
-    controller.press(request.json['value'])
+    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
+    controller.release(Rokenbok.ControllerCommand(request.json['value']))
     return "OK"
 
 @app.route('/edit', methods=['POST'])
 def edit():
-    controller = command_deck.Controller(command_deck, request.json['controller'])
-    controller.select(request.json['value'])
+    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
+    controller.select(Rokenbok.VehicleKey(request.json['value']))
     return "OK"
 
 @app.route('/enable', methods=['POST'])
 def enable():
-    controller = command_deck.Controller(command_deck, request.json['controller'])
+    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
     controller.enable()
     return "OK"
 
 @app.route('/disable', methods=['POST'])
 def disable():
-    controller = command_deck.Controller(command_deck, request.json['controller'])
+    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(request.json['controller']))
     controller.disable()
     return "OK"
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    command_deck.send_command(command_deck.Command.RESET)
+    command_deck.send_command(Rokenbok.DeviceCommand.RESET)
     return "OK"
 
 @socketio.on('gamepad')
 def handle_gamepad(data):
-    controller = command_deck.Controller(command_deck, data['controller'])
+    controller = command_deck.Controller(command_deck, Rokenbok.ControllerIdentifier(data['controller']))
     controller.send_input(data)
 
 def handle_exit(signal, frame):
@@ -80,4 +81,5 @@ if __name__ == '__main__':
     if args.upnp == "enable":
         print("Trying to open port via UPnP")
         upnp_mapper = UPnPPortMapper(args.port, args.port, args.ip, "SmartPort Web Server")
+
     socketio.run(app.run(host=args.ip, port=args.port))
