@@ -53,8 +53,8 @@ def reset():
     command_deck.send_command(Rokenbok.DeviceCommand.RESET)
     return "OK"
 
-@socketio.on('gamepad')
-def handle_gamepad(data):
+@socketio.on('controller')
+def handle_controller(data):
     controller = command_deck.get_controller(Rokenbok.ControllerIdentifier(data['controller']))
     controller.send_input(data)
 
