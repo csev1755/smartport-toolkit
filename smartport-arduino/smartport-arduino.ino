@@ -175,10 +175,6 @@ void setup(void)
   // Ready For First Byte
   digitalWrite(SLAVE_READY_PIN, HIGH);
 
-  // TESTING CODE BELOW
-  enabled_controllers = 0b11101111;
-  selects[0] = 0x00;
-  sp_up = 0x10;
 }
 
 /// @brief Not Yet Implemented
