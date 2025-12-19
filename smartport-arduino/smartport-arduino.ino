@@ -25,8 +25,7 @@
 
 #define CMD_ENABLED_CONTROLLERS  0x01
 #define CMD_SELECT               0x02
-#define CMD_SP_UP                0x03
-#define CMD_SP_DN                0x04
+#define CMD_SP_BUTTON            0x03
 
 // Smart Port Byte Codes Sent By Master
 #define NULL_CMD 0x00
@@ -177,7 +176,7 @@ void setup(void)
 
 }
 
-/// @brief Not Yet Implemented
+/// @brief Receive commands via serial
 /// @return void
 void loop(void)
 {
@@ -206,10 +205,21 @@ void loop(void)
         break;
       }
 
-      case CMD_SP_UP:
+      case CMD_SP_BUTTON:
       {
-        uint8_t value = Serial.read();
-        sp_up = value;
+        // Wait for the 9 bytes to arrive
+        while (Serial.available() < 9);
+        
+        // Read the 9 bytes in order
+        sp_a     = Serial.read();
+        sp_b     = Serial.read();
+        sp_x     = Serial.read();
+        sp_y     = Serial.read();
+        sp_up    = Serial.read();
+        sp_down  = Serial.read();
+        sp_right = Serial.read();
+        sp_left  = Serial.read();
+        sp_rt    = Serial.read();
         break;
       }
     }

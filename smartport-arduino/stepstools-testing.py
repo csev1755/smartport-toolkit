@@ -1,14 +1,28 @@
 import serial
 import time
 
+key7 = 0x06
+controller_bit = 0b00010000
+enabled_controllers = 0b11101111 # does this need to be set dynamically?
+
+controller_status_cmd = 0x01
+select_cmd = 0x02
+button = 0x03
+
 ser = serial.Serial('COM3', 115200)
-time.sleep(2)
+time.sleep(2) # breaks without this
 
-# enabled_controllers
-ser.write(bytes([0x01, 0b11101111]))
+ser.write(bytes([controller_status_cmd, enabled_controllers]))
 
-# selects[0] = 0x06
-ser.write(bytes([0x02, 0x00, 0x06]))
+ser.write(bytes([select_cmd, 0x00, key7]))
 
-# sp_up = 0x10
-ser.write(bytes([0x03, 0x10]))
+while True:
+    ser.write(
+        bytes([button, 0x00, 0x00, 0x00, 0x00, controller_bit, 0x00, 0x00, 0x00, 0x00]))
+
+    time.sleep(1)
+
+    ser.write(
+        bytes([button, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
+
+    time.sleep(1)
