@@ -5,14 +5,14 @@ An Arduino sketch that listens to commands from its USB serial interface to perf
 
 ![SmartPort diagram](./mini-din-6.jpg)
 
-| Pin | Function | Arduino Uno |
-|---|---|---|
-| 1 | Serial Clock | 13 |
-| 2 | MISO | 12 |
-| 3 | MOSI | 11 |
-| 4 | Frame End | Not Connected |
-| 5 | Slave Ready | 8 |
-| 6 | Ground | GND |
+| SmartPort Pin | Function | Arduino Uno | Arduino Nano
+|---|---|---|---|
+| 1 | Serial Clock | 13 | 13 |
+| 2 | MISO | 12 | 12 |
+| 3 | MOSI | 11 | 11 |
+| 4 | Frame End | - | - |
+| 5 | Slave Ready | 9 | 9 |
+| 6 | Ground | GND | GND |
 
 ## Other projects
 
