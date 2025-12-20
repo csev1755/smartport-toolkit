@@ -3,6 +3,9 @@ name = "smartport-webserver"
 version = "0.0.1"
 description = "A webserver to control Rokenbok over the internet"
 readme = "README.md"
+authors = [
+    { name = "csev1755", email = "charlie@cssev.xyz" }
+]
 requires-python = ">=3.13"
 dependencies = [
     "bidict==0.23.1",
@@ -22,3 +25,10 @@ dependencies = [
     "werkzeug==3.1.4",
     "wsproto==1.3.2",
 ]
+
+[project.scripts]
+smartport-toolkit = "smartport_toolkit:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
