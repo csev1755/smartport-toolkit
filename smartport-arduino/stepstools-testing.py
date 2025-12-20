@@ -1,4 +1,5 @@
 import serial
+import sys
 import time
 
 key7 = 0x06
@@ -9,7 +10,7 @@ controller_status_cmd = 0x01
 select_cmd = 0x02
 button = 0x03
 
-ser = serial.Serial('COM3', 115200)
+ser = serial.Serial(sys.argv[1], 115200)
 time.sleep(2) # breaks without this
 
 ser.write(bytes([controller_status_cmd, enabled_controllers]))
