@@ -10,6 +10,8 @@ controller_status_cmd = 0x01
 select_cmd = 0x02
 button = 0x03
 
+delay = 0.2
+
 ser = serial.Serial(sys.argv[1], 115200)
 time.sleep(2) # breaks without this
 
@@ -21,9 +23,9 @@ while True:
     ser.write(
         bytes([button, 0x00, 0x00, 0x00, 0x00, controller_bit, 0x00, 0x00, 0x00, 0x00]))
 
-    time.sleep(1)
+    time.sleep(delay)
 
     ser.write(
         bytes([button, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
 
-    time.sleep(1)
+    time.sleep(delay)
