@@ -235,7 +235,7 @@ void loop(void)
 //  |_____|_____/|_|  \_\___/  //
 
 /// @brief ISR triggers when SPI byte is received and handles Smart Port logic.
-/// @param TIMER1_OVF_vect SPI Serial Transfer Complete Vector
+/// @param SPI_STC_vect SPI Serial Transfer Complete Vector
 /// @return N/A
 ISR(SPI_STC_vect)
 {
