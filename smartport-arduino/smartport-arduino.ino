@@ -110,7 +110,7 @@ uint8_t dpi_left[4] = {false, false, false, false};
 uint8_t dpi_right[4] = {false, false, false, false};
 uint8_t dpi_rt[4] = {false, false, false, false};
 
-// uint8_t sp_status = 0;
+uint8_t sp_status = 0;
 
 uint8_t spi_current_series = 0;
 uint8_t spi_series_count = 0;
@@ -163,13 +163,13 @@ void setup(void)
   SPCR |= _BV(SPIE); // Enable SPI Interrupt
   SPDR = 0x00;       // Zero Out SPI Register
 
-  // // Configure Timer
-  // TCCR1A = 0;
-  // TCCR1B = 0;
-  // TCNT1 = 0;
-  // TCCR1B |= (1 << CS10);  // 64 Prescaler
-  // TCCR1B |= (1 << CS11);  // 64 Prescaler
-  // TIMSK1 |= (1 << TOIE1); // Enable Timer Overflow Interrupt
+  // Configure Timer
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 0;
+  TCCR1B |= (1 << CS10);  // 64 Prescaler
+  TCCR1B |= (1 << CS11);  // 64 Prescaler
+  TIMSK1 |= (1 << TOIE1); // Enable Timer Overflow Interrupt
 
   // Ready For First Byte
   digitalWrite(SLAVE_READY_PIN, HIGH);
@@ -263,8 +263,8 @@ ISR(SPI_STC_vect)
 
       // RESET SYNC TIMER
       // EDIT_TPADS byte will only be received with a good sync.
-      // TCNT1 = 0;
-      // sp_status = true;
+      TCNT1 = 0;
+      sp_status = true;
     }
     else if (recv_byte == EDIT_SELECT)
     {
@@ -700,31 +700,31 @@ ISR(SPI_STC_vect)
 /// @brief ISR triggers if Smart Port sync is lost and resets variables.
 /// @param TIMER1_OVF_vect Timer 1 Overflow Vector
 /// @return N/A
-// ISR(TIMER1_OVF_vect)
-// {
-//   if (sp_status == 1)
-//   {
-//     sp_status = 0;
+ISR(TIMER1_OVF_vect)
+{
+  if (sp_status == 1)
+  {
+    sp_status = 0;
 
-//     for (int i = 0; i < 12; i++)
-//     {
-//       selects[i] = 0x0F;
-//       enable_control[i] = false;
-//     }
+    for (int i = 0; i < 12; i++)
+    {
+      selects[i] = 0x0F;
+      enable_control[i] = false;
+    }
 
-//     enabled_controllers = 0b11111111;
-//     sp_a = 0x00;
-//     sp_b = 0x00;
-//     sp_x = 0x00;
-//     sp_y = 0x00;
-//     sp_up = 0x00;
-//     sp_down = 0x00;
-//     sp_right = 0x00;
-//     sp_left = 0x00;
-//     sp_rt = 0x00;
-//     sp_priority_byte = 0x00;
+    enabled_controllers = 0b11111111;
+    sp_a = 0x00;
+    sp_b = 0x00;
+    sp_x = 0x00;
+    sp_y = 0x00;
+    sp_up = 0x00;
+    sp_down = 0x00;
+    sp_right = 0x00;
+    sp_left = 0x00;
+    sp_rt = 0x00;
+    sp_priority_byte = 0x00;
 
-//     spi_current_series = 0;
-//     spi_series_count = 0;
-//   }
-// }
+    spi_current_series = 0;
+    spi_series_count = 0;
+  }
+}
