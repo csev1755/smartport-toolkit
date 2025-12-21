@@ -3,8 +3,9 @@ import sys
 import time
 
 key7 = 0x06
-controller_bit = 0b00010000
-enabled_controllers = 0b11101111 # does this need to be set dynamically?
+controller_bit = 0b00010000 # V4|V3|V2|V1|P4|P3|P2|P1
+enabled_controllers = 0b11101111 # V4|V3|V2|V1|P4|P3|P2|P1 // 0 = Enabled, 1 = Disabled
+controller_id = 0 # array position: V1, V2, V3, V4, P1, P2, P3, P4, D1, D2, D3, D4
 
 controller_status_cmd = 0x01
 select_cmd = 0x02
@@ -17,7 +18,7 @@ time.sleep(2) # breaks without this
 
 ser.write(bytes([controller_status_cmd, enabled_controllers]))
 
-ser.write(bytes([select_cmd, 0x00, key7]))
+ser.write(bytes([select_cmd, controller_id, key7]))
 
 while True:
     ser.write(
