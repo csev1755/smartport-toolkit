@@ -1,359 +1,327 @@
-/* SMART PORT ARDUINO DEMO CODE
- * AUTHORS: STEPSTOOLS, CSEV1755
- * DATE: 2 DEC 25
- * ROKENBOK DISCORD: https://discord.gg/pmbbAsq
- */
-
-// DEFINE MAGIC BYTES
-
-#define SLAVE_READY_PIN 9
-
-#define ENABLE_ATTRIB_BYTE   0x0D
-#define DISABLE_ATTRIB_BYTE  0x00
-#define NO_SEL_TIMEOUT       0x00
-
-#define NULL_CMD 0x00
-#define BCAST_TPADS 0xc0
-#define BCAST_SELECT 0xC1
-#define BCAST_END 0xC2
-#define EDIT_TPADS 0xC3
-#define EDIT_SELECT 0xC4
-#define EDIT_END 0xC5
-#define PRESYNC 0xC6
-#define MASTER_SYNC 0xC7
-#define READ_ATTRIB 0xC8
-#define MASTER_NO_INS 0xC9
-#define MASTER_ASK_INS 0xCA
-#define READ_REPLY 0xCB
-#define READ_NO_SEL_TIMEOUT 0xCC
-#define NO_RADIO_PKT 0xCD
-#define HAVE_RADIO_PKT 0xCE
-
-#define NULL_CMD 0x00
-#define VERIFY_EDIT 0x80
-#define SLAVE_SYNC 0x81
-#define SLAVE_NO_INS 0x82
-#define SLAVE_WAIT_INS 0x83
-#define PACKET_INJECT_ATTRIB_BYTE 0x2D // Packet Injection
-#define ENABLE_ATTRIB_BYTE 0x0D // No Packet Injection
-#define DISABLE_ATTRIB_BYTE 0x00
-#define NO_SEL_TIMEOUT 0x00 // 1 = Controller Never Times Out, 0 = Normal V4|V3|V2|V1|P4|P3|P2|P1
-
-#define NO_SERIES 0
-#define SYNC_SERIES 1
-#define EDIT_TPADS_SERIES 2
-#define EDIT_SELECT_SERIES 3
-#define PKT_INJECT_SERIES 4
-
-#define CMD_PRESS   0
-#define CMD_RELEASE 1
-#define CMD_EDIT    2
-#define CMD_ENABLE  3
-#define CMD_DISABLE 4
-#define CMD_RESET   5
-
-// DEFINE VARIABLES
-
-volatile uint8_t current_series = 0;
-volatile uint8_t series_count = 0;
-
-volatile uint8_t rec_byte = 0;
-volatile uint8_t send_byte = 0;
-
-volatile uint8_t p1_control, p2_control, p3_control, p4_control;
-volatile uint8_t enabled_controllers;
-
-uint8_t* control_map[] = {
-  &p1_control,
-  &p2_control,
-  &p3_control,
-  &p4_control
+enum UPDATE_STATE {
+  START = 0,
+  BEGIN_SYNC,
+  END_SYNC,
+  UPDATE_SEL_BUT,
+  UPDATE_LEFT_TRIG,
+  UPDATE_SHARING,
+  RESERVED_1,
+  IS16SEL,
+  UPDATE_FORWARD,
+  UPDATE_BACK,
+  UPDATE_RIGHT,
+  UPDATE_LEFT,
+  UPDATE_A,
+  UPDATE_B,
+  UPDATE_X,
+  UPDATE_Y,
+  RESERVED_2,
+  RESERVED_3,
+  UPDATE_RIGHT_TRIG,
+  UPDATE_SPARE,
+  UPDATE_PRIORITY,
+  UPDATE_SEL_0,
+  UPDATE_SEL_1,
+  UPDATE_SEL_2,
+  UPDATE_SEL_3,
+  UPDATE_SEL_4,
+  UPDATE_SEL_5,
+  UPDATE_SEL_6,
+  UPDATE_SEL_7,
+  END_UPDATE_SEL
 };
 
-uint8_t controller_masks[] = {
-  0b00000001,
-  0b00000010,
-  0b00000100,
-  0b00001000
-};
+const byte slave_ready_pin = 7;
+const byte sync_byte = 0b10101010;
 
-volatile uint8_t p1_select, p2_select, p3_select, p4_select;
-volatile uint8_t v1_select, v2_select, v3_select, v4_select;
+byte des_forward = 0; //1 to activate
+byte des_back = 0;    //1 to activate
+byte des_left = 0;    //1 to activate
+byte des_right = 0;   //1 to activate
+byte des_a = 0;       //1 to activate
+byte des_b = 0;       //1 to activate
+byte des_x = 0;       //1 to activate
+byte des_y = 0;       //1 to activate
+byte des_slow = 0;    //1 to activate
+byte des_sharing = 0; //1 to allow sharing
+byte des_priority = 0; //1 to allow sharing
+byte des_sel[8];
 
-uint8_t* controller_map[] = {
-  &p1_select, &p2_select, &p3_select, &p4_select,
-  &v1_select, &v2_select, &v3_select, &v4_select
-};
+byte cur_forward = 0;
+byte cur_back = 0;
+byte cur_left = 0;
+byte cur_right = 0;
+byte cur_a = 0;
+byte cur_b = 0;
+byte cur_x = 0;
+byte cur_y = 0;
+byte cur_slow = 0;
+byte cur_sharing = 0;
+byte cur_priority = 0;
+byte cur_sel[8];
 
-volatile uint8_t sel_button, lt, share, is16SEL;
-volatile uint8_t up, down, right, left;
-volatile uint8_t a, b, x, y, rt;
-volatile uint8_t priority_byte;
+UPDATE_STATE cur_state = START;
 
-volatile uint8_t command;
-volatile uint8_t controller;
-volatile uint8_t value;
-volatile uint8_t ctrl_bit;
+byte handle_msg(byte rec_data);
 
-uint8_t rec_cmd[3];
+void setup()
+{
+  //Used to communicate to host pc
+  Serial.begin(115200);
+  Serial.setTimeout(1000);
+  pinMode(13, OUTPUT);
+  digitalWrite(13, LOW);
+  //Initialize variables
+  for (int ii = 0; ii < 8; ii++) {
+    des_sel[ii] = 0xFF;
+    cur_sel[ii] = 0xFF;
+  }
 
-uint8_t* button_map[] = {
-  &sel_button,
-  &lt,
-  &share,
-  &is16SEL,
-  &up,
-  &down,
-  &right,
-  &left,
-  &a,
-  &b,
-  &x,
-  &y,
-  &rt
-};
-
-// SMARTPORT FUNCTIONS
-
-void setup() {
+  //We are the slave in SPI
   pinMode(MISO, OUTPUT);
-  pinMode(MOSI, INPUT);
-  pinMode(SCK, INPUT);
-  pinMode(SLAVE_READY_PIN, OUTPUT);
+  //pinMode(MOSI, INPUT);
+  pinMode(slave_ready_pin, OUTPUT);
 
-  SPCR |= _BV(SPE);  // Enable SPI (Slave Mode)
-  SPCR |= _BV(SPIE); // Enable SPI Interrupt
-  SPDR = 0x00; // Zero Out SPI Register
-
-  TCCR1A = 0;
-  TCCR1B = 0;
-
-  TCNT1 = 0;
-  TCCR1B |= (1 << CS10);    // 64 prescaler 
-  TCCR1B |= (1 << CS11);    // 64 prescaler
-  TIMSK1 |= (1 << TOIE1);   // enable timer overflow interrupt
-
-  Serial.begin(115200); 
+  //Setup SPI
+  SPCR |= _BV(SPE);   //turn on SPI in slave mode
+  SPCR |= _BV(SPIE);  //turn on interrupts
 }
 
-void loop() {
-  if (Serial.available() >= 3) {
-    Serial.readBytes(rec_cmd, 3); // Read bytes
-    receive_command(rec_cmd, 3); // Interpret command
+void loop()
+{
+  //Wait to receive sync bytes
+  byte sync_count = 0;
+  while (sync_count < 2) {
+    if (Serial.available()) {
+      if (Serial.read() == sync_byte) {
+        sync_count++;
+      } else {
+        sync_count = 0;
+      }
+    }
+  }
+  
+  //Wait until serial buffer has all of the bytes
+  //we are expecting to read
+  while (Serial.available() < 19) {
+    //Do nothing
+  }
+  
+  //The serial buffer now has all the bytes we need to read
+  des_forward = Serial.read();
+  des_back = Serial.read();
+  des_left = Serial.read();
+  des_right = Serial.read();
+  des_a = Serial.read();
+  des_b = Serial.read();
+  des_x = Serial.read();
+  des_y = Serial.read();
+  des_slow = Serial.read();
+  des_sharing = Serial.read();
+  des_priority = Serial.read();
+  Serial.readBytes(des_sel, 8);
+  /*
+  //Send a response
+  //Send sync bytes (forward and backward most likely wont
+  //be pressed at the same time
+  Serial.write(sync_byte);
+  Serial.write(sync_byte);
+  //Send current state to host pc
+  Serial.write(cur_forward);
+  Serial.write(cur_back);
+  Serial.write(cur_left);
+  Serial.write(cur_right);
+  Serial.write(cur_a);
+  Serial.write(cur_b);
+  Serial.write(cur_x);
+  Serial.write(cur_y);
+  Serial.write(cur_slow);
+  Serial.write(cur_sharing);
+  Serial.write(cur_sel, 8);
+  */
+  if (Serial.available() > 1000) {
+    digitalWrite(13, HIGH);
   }
 }
 
-void receive_command(uint8_t *cmd, size_t len) {
-  command = cmd[0];
-  controller = cmd[1];
-  value = cmd[2];
-  ctrl_bit = (1 << controller);
-
-  switch (command) {
-    case CMD_PRESS:
-      *button_map[value] |= ctrl_bit;
-      priority_byte |= ctrl_bit;
-      break;
-
-    case CMD_RELEASE:
-      *button_map[value] &= ~ctrl_bit;
-      priority_byte |= ctrl_bit;
-      break;
-
-    case CMD_EDIT:
-      *controller_map[controller] = value;
-      break;
-
-    case CMD_ENABLE:
-      *control_map[controller] = 1;
-      enabled_controllers &= ~controller_masks[controller];
-      break;
-
-    case CMD_DISABLE:
-      *control_map[controller] = 0;
-      enabled_controllers |= controller_masks[controller];
-      break;
-    
-    case CMD_RESET:
-      reset_smartport();
-      break;
-  }
-}
-
-volatile uint8_t rok_respond(uint8_t rec_byte) {
-  switch (current_series) {
-
-    case NO_SERIES:
-      switch (rec_byte) {
-        case PRESYNC:
-          current_series = SYNC_SERIES;
-          series_count = 1;
-          send_byte = SLAVE_SYNC;
+byte handle_msg(byte rec_data)
+{
+  switch (cur_state) {
+    case START:
+      switch (rec_data) {
+        case 0xC6:
+          cur_state = BEGIN_SYNC;
+          return 0x81;
           break;
-
-        case EDIT_TPADS:
-          current_series = EDIT_TPADS_SERIES;
-          series_count = 1;
-          send_byte = VERIFY_EDIT;
-          TCNT1 = 0; // Reset timer.
+        case 0xC3:
+          cur_state = UPDATE_SEL_BUT;
+          return 0x80;
           break;
-
-        case EDIT_SELECT:
-          current_series = EDIT_SELECT_SERIES;
-          series_count = 1;
-          send_byte = VERIFY_EDIT;
+        case 0xC4:
+          cur_state = UPDATE_SEL_0;
+          return 0x80;
           break;
-
         default:
-          current_series = NO_SERIES;
-          series_count = 0;
-          send_byte = NULL_CMD;
+          cur_state = START;
+          return 0x00;
           break;
       }
       break;
-
-      
-    case SYNC_SERIES:
-      switch (series_count) {
-        case 1:
-          series_count = 2;
-          send_byte = ENABLE_ATTRIB_BYTE;
-          break;
-
-        case 2:
-          series_count = 3;
-          send_byte = NO_SEL_TIMEOUT;
-          break;
-          
-        default:
-          current_series = NO_SERIES;
-          series_count = 0;
-          send_byte = NULL_CMD;
-          break;
-      }
+    case BEGIN_SYNC:
+      cur_state = END_SYNC;
+      return 0x0D;
       break;
-
-
-    case EDIT_TPADS_SERIES:
-      switch (series_count) {
-
-        case 1:  series_count = 2;  send_byte = (rec_byte & enabled_controllers) | sel_button;     break;
-        case 2:  series_count = 3;  send_byte = (rec_byte & enabled_controllers) | lt;             break;
-        case 3:  series_count = 4;  send_byte = (rec_byte & enabled_controllers) | share;          break;
-        case 4:  series_count = 5;  send_byte = rec_byte;                                          break; // RESERVED
-        case 5:  series_count = 6;  send_byte = (rec_byte & enabled_controllers) | is16SEL;        break;
-        case 6:  series_count = 7;  send_byte = (rec_byte & enabled_controllers) | up;             break;
-        case 7:  series_count = 8;  send_byte = (rec_byte & enabled_controllers) | down;           break;
-        case 8:  series_count = 9;  send_byte = (rec_byte & enabled_controllers) | right;          break;
-        case 9:  series_count = 10; send_byte = (rec_byte & enabled_controllers) | left;           break;
-        case 10: series_count = 11; send_byte = (rec_byte & enabled_controllers) | a;              break;
-        case 11: series_count = 12; send_byte = (rec_byte & enabled_controllers) | b;              break;
-        case 12: series_count = 13; send_byte = (rec_byte & enabled_controllers) | x;              break;
-        case 13: series_count = 14; send_byte = (rec_byte & enabled_controllers) | y;              break; 
-        case 14: series_count = 15; send_byte = !enabled_controllers;                              break; // RESERVED (This Line Somehow Helps Physical Controllers)
-        case 15: series_count = 16; send_byte = !enabled_controllers;                              break; // RESERVED (This Line Somehow Helps Physical Controllers)
-        case 16: series_count = 17; send_byte = (rec_byte & enabled_controllers) | rt;             break;
-        case 17: series_count = 18; send_byte = rec_byte;                                          break; // SPARE
-
-        case 18:
-          current_series = NO_SERIES;
-          series_count = 0;
-          send_byte = rec_byte | priority_byte;
-          priority_byte = NULL_CMD;
-          break;
-
-        default:
-          current_series = NO_SERIES;
-          series_count = 0;
-          send_byte = NULL_CMD;
-          break;
-      }
+    case END_SYNC:
+      cur_state = START;
+      return 0x00;
       break;
-
-
-    case EDIT_SELECT_SERIES:
-      switch (series_count) {
-        case 1:
-          series_count = 2;
-          send_byte = p1_control ? p1_select : rec_byte;
-          break;
-
-        case 2:
-          series_count = 3;
-          send_byte = p2_control ? p2_select : rec_byte;
-          break;
-
-        case 3:
-          series_count = 4;
-          send_byte = p3_control ? p3_select : rec_byte;
-          break;
-
-        case 4:
-          series_count = 5;
-          send_byte = p4_control ? p4_select : rec_byte;
-          break;
-
-        case 5:
-          series_count = 6;
-          send_byte = v1_select;
-          break;
-
-        case 6:
-          series_count = 7;
-          send_byte = v2_select;
-          break;
-
-        case 7:
-          series_count = 8;
-          send_byte = v3_select;
-          break;
-
-        case 8:
-          series_count = 9;
-          send_byte = v4_select;
-          break;
-
-        case 9:
-          current_series = NO_SERIES;
-          series_count = 0;
-          send_byte = NULL_CMD;
-          break;
-
-        default:
-          current_series = NO_SERIES;
-          series_count = 0;
-          send_byte = NULL_CMD;
-          break;
-      }
+    case UPDATE_SEL_BUT:
+      cur_state = UPDATE_LEFT_TRIG;
+      //Don't need anyone to use select button we will
+      //select the number in a different portion
+      return 0;
       break;
-
-
+    case UPDATE_LEFT_TRIG:
+      cur_state = UPDATE_SHARING;
+      //Don't need left trigger because that snaps back
+      //to the last selected vehicle, but again we will
+      //handle that in a different portion
+      return 0;
+      break;
+    case UPDATE_SHARING:
+      cur_state = RESERVED_1;
+      cur_sharing = rec_data;
+      return des_sharing;
+      break;
+    case RESERVED_1:
+      //Just send back what you get
+      cur_state = IS16SEL;
+      return rec_data;
+      break;
+    case IS16SEL:
+      //Don't know what this is, send back all ones
+      cur_state = UPDATE_FORWARD;
+      return 0xFF;
+      break;
+    case UPDATE_FORWARD:
+      cur_state = UPDATE_BACK;
+      cur_forward = rec_data;
+      return des_forward;
+      break;
+    case UPDATE_BACK:
+      cur_state = UPDATE_RIGHT;
+      cur_back = rec_data;
+      return des_back;
+      break;
+    case UPDATE_RIGHT:
+      cur_state = UPDATE_LEFT;
+      cur_right = rec_data;
+      return des_right;
+      break;
+    case UPDATE_LEFT:
+      cur_state = UPDATE_A;
+      cur_left = rec_data;
+      return des_left;
+      break;
+    case UPDATE_A:
+      cur_state = UPDATE_B;
+      cur_a = rec_data;
+      return des_a;
+      break;
+    case UPDATE_B:
+      cur_state = UPDATE_X;
+      cur_b = rec_data;
+      return des_b;
+      break;
+    case UPDATE_X:
+      cur_state = UPDATE_Y;
+      cur_x = rec_data;
+      return des_x;
+      break;
+    case UPDATE_Y:
+      cur_state = RESERVED_2;
+      cur_y = rec_data;
+      return des_y;
+      break;
+    case RESERVED_2:
+      cur_state = RESERVED_3;
+      return rec_data;
+      break;
+    case RESERVED_3:
+      cur_state = UPDATE_RIGHT_TRIG;
+      return rec_data;
+      break;
+    case UPDATE_RIGHT_TRIG:
+      cur_state = UPDATE_SPARE;
+      cur_slow = rec_data;
+      return des_slow;
+      break;
+    case UPDATE_SPARE:
+      cur_state = UPDATE_PRIORITY;
+      return rec_data;
+      break;
+    case UPDATE_PRIORITY:
+      cur_state = START;
+      cur_priority = rec_data;
+      return des_priority;
+      break;
+    case UPDATE_SEL_0:
+      cur_state = UPDATE_SEL_1;
+      cur_sel[0] = rec_data;
+      return des_sel[0];
+      break;
+    case UPDATE_SEL_1:
+      cur_state = UPDATE_SEL_2;
+      cur_sel[1] = rec_data;
+      return des_sel[1];
+      break;
+    case UPDATE_SEL_2:
+      cur_state = UPDATE_SEL_3;
+      cur_sel[2] = rec_data;
+      return des_sel[2];
+      break;
+    case UPDATE_SEL_3:
+      cur_state = UPDATE_SEL_4;
+      cur_sel[3] = rec_data;
+      return des_sel[3];
+      break;
+    case UPDATE_SEL_4:
+      cur_state = UPDATE_SEL_5;
+      cur_sel[4] = rec_data;
+      return des_sel[4];
+      break;
+    case UPDATE_SEL_5:
+      cur_state = UPDATE_SEL_6;
+      cur_sel[5] = rec_data;
+      return des_sel[5];
+      break;
+    case UPDATE_SEL_6:
+      cur_state = UPDATE_SEL_7;
+      cur_sel[6] = rec_data;
+      return des_sel[6];
+      break;
+    case UPDATE_SEL_7:
+      cur_state = END_UPDATE_SEL;
+      cur_sel[7] = rec_data;
+      return des_sel[7];
+      break;
+    case END_UPDATE_SEL:
+      cur_state = START;
+      return 0x00;
+      break;
     default:
-      current_series = NO_SERIES;
-      series_count = 0;
-      send_byte = NULL_CMD;
+      cur_state = START;
+      return 0x00;
       break;
   }
-
-  return send_byte;
 }
 
-void reset_smartport() {
-  SPDR = 0x00;
-  current_series = 0;
-  series_count = 0;
-  SPCR = 0;
-  SPCR |= _BV(SPE);  // Enable SPI (Slave Mode)
-  SPCR |= _BV(SPIE); // Enable SPI Interrupt
-}
-
-ISR (SPI_STC_vect) {
-  digitalWrite(SLAVE_READY_PIN, HIGH); // NOT READY
-  rec_byte = SPDR; // RECEIVE BYTE
-  SPDR = rok_respond(rec_byte); // SEND BYTE
-  digitalWrite(SLAVE_READY_PIN, LOW); // READY
-}
-
-ISR(TIMER1_OVF_vect) {
-  reset_smartport();
+ISR(SPI_STC_vect)
+{
+  //Indicate we are not ready for a new byte yet
+  digitalWrite(slave_ready_pin, HIGH);
+  byte rec_data = SPDR;
+  SPDR = handle_msg(rec_data);
+  //Inidcate we are now ready for a new byte
+  digitalWrite(slave_ready_pin, LOW);
 }
