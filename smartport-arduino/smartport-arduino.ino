@@ -21,11 +21,7 @@
 //  |_____/|______|_|    |_____|_| \_|______|_____/   //
 
 // GPIO Pinout
-#define SLAVE_READY_PIN 9
-
-#define CMD_ENABLED_CONTROLLERS  0x01
-#define CMD_SELECT               0x02
-#define CMD_SP_BUTTON            0x03
+#define SLAVE_READY_PIN 8
 
 // Smart Port Byte Codes Sent By Master
 #define NULL_CMD 0x00
@@ -150,7 +146,7 @@ bool contains(uint8_t array[], size_t size, uint8_t value)
 /// @return void
 void setup(void)
 {
-  Serial.begin(115200);
+  // Serial.begin(115200);
 
   // Configure Smart Port GPIO
   pinMode(MISO, OUTPUT);
@@ -174,58 +170,17 @@ void setup(void)
   // Ready For First Byte
   digitalWrite(SLAVE_READY_PIN, HIGH);
 
+  // TESTING CODE BELOW
+  enabled_controllers = 0b11101111;
+  selects[0] = 0x06;
+  sp_up = 0x10;
 }
 
-/// @brief Receive commands via serial
+/// @brief Not Yet Implemented
 /// @return void
 void loop(void)
 {
-  while (Serial.available() >= 2)
-  {
-    uint8_t cmd = Serial.read();
-
-    switch (cmd)
-    {
-      case CMD_ENABLED_CONTROLLERS:
-      {
-        uint8_t value = Serial.read();
-        enabled_controllers = value;
-        break;
-      }
-
-      case CMD_SELECT:
-      {
-        // Needs 2 more bytes
-        while (Serial.available() < 2);
-        uint8_t index = Serial.read();  // 0–11
-        uint8_t value = Serial.read();  // select value
-
-        if (index < 12)
-          selects[index] = value;
-        break;
-      }
-
-      case CMD_SP_BUTTON:
-      {
-        // Wait for the 9 bytes to arrive
-        while (Serial.available() < 9);
-        
-        // Read the 9 bytes in order
-        sp_a     = Serial.read();
-        sp_b     = Serial.read();
-        sp_x     = Serial.read();
-        sp_y     = Serial.read();
-        sp_up    = Serial.read();
-        sp_down  = Serial.read();
-        sp_right = Serial.read();
-        sp_left  = Serial.read();
-        sp_rt    = Serial.read();
-        break;
-      }
-    }
-  }
 }
-
 
 //   _____  _____ _____        //
 //  |_   _|/ ____|  __ \       //
@@ -235,7 +190,7 @@ void loop(void)
 //  |_____|_____/|_|  \_\___/  //
 
 /// @brief ISR triggers when SPI byte is received and handles Smart Port logic.
-/// @param SPI_STC_vect SPI Serial Transfer Complete Vector
+/// @param TIMER1_OVF_vect SPI Serial Transfer Complete Vector
 /// @return N/A
 ISR(SPI_STC_vect)
 {
@@ -706,23 +661,23 @@ ISR(TIMER1_OVF_vect)
   {
     sp_status = 0;
 
-    for (int i = 0; i < 12; i++)
-    {
-      selects[i] = 0x0F;
-      enable_control[i] = false;
-    }
+    // for (int i = 0; i < 12; i++)
+    // {
+    //   selects[i] = 0x0F;
+    //   enable_control[i] = false;
+    // }
 
-    enabled_controllers = 0b11111111;
-    sp_a = 0x00;
-    sp_b = 0x00;
-    sp_x = 0x00;
-    sp_y = 0x00;
-    sp_up = 0x00;
-    sp_down = 0x00;
-    sp_right = 0x00;
-    sp_left = 0x00;
-    sp_rt = 0x00;
-    sp_priority_byte = 0x00;
+    // enabled_controllers = 0b11111111;
+    // sp_a = 0x00;
+    // sp_b = 0x00;
+    // sp_x = 0x00;
+    // sp_y = 0x00;
+    // sp_up = 0x00;
+    // sp_down = 0x00;
+    // sp_right = 0x00;
+    // sp_left = 0x00;
+    // sp_rt = 0x00;
+    // sp_priority_byte = 0x00;
 
     spi_current_series = 0;
     spi_series_count = 0;
