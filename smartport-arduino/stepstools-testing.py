@@ -11,7 +11,7 @@ controller_status_cmd = 0x01
 select_cmd = 0x02
 button = 0x03
 
-delay = 0.2
+delay = 3
 
 ser = serial.Serial(sys.argv[1], 115200)
 time.sleep(2) # breaks without this
